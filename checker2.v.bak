@@ -1,0 +1,211 @@
+module checker2(input clk,output reg Done,output correct);
+
+reg rst;
+reg [15:0] number1,number2;
+wire [15:0] result;
+wire ready;
+
+//parameter RDY=3'b000, waiting=3'b001, issue=3'b010,DONE=3'b011;
+
+
+reg [47:0] test [0:7];
+reg [15:0] expected_result;
+
+//reg [2:0] state= RDY;
+reg [2:0] icount=3'b000;
+reg [3:0] ocount=4'b0000;
+reg mistake;
+
+initial
+begin
+rst=1'b1;
+//Test cases
+test[0]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[1]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+test[2]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[3]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+test[4]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[5]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+test[6]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[7]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+ocount=4'b0000;
+
+//Done=1'b0;
+number1=test[0][47:32];
+number2=test[0][31:16];
+expected_result=test[0][15:0];
+mistake=1'b0;
+//correct=1'b0;
+
+end
+
+pipeFPA fpa(clk,rst,number1,number2,result,ready);
+
+always@(posedge clk) //Data input
+begin
+if(icount<5)
+begin
+number1<=test[icount][47:32];
+number2<=test[icount][31:16];
+icount<=icount+1;
+end
+
+end
+
+always@(posedge clk)
+begin
+if(ocount<4)
+begin
+Done<=1'b0;
+ocount<=ocount+4'b0001;
+expected_result<=test[0][15:0];
+mistake<=1'b0;
+end
+else
+begin
+expected_result<=test[ocount-4][15:0];
+if(result!=expected_result) mistake<=1'b1;
+if(ocount==8)
+begin
+Done<=1'b1;
+ocount<=4'b0000;
+end
+else
+begin
+ocount<=ocount+4'b0001;
+Done<=1'b0;
+end
+end
+end
+
+assign correct=(Done)?(~mistake):1'b0;
+
+
+endmodule
+
+On Wed, Aug 11, 2021 at 10:24 PM aditya wani <waniaditya2525@gmail.com> wrote:
+module checker2(input clk,output reg Done,output correct);
+
+reg rst;
+reg [15:0] number1,number2;
+wire [15:0] result;
+wire ready;
+
+//parameter RDY=3'b000, waiting=3'b001, issue=3'b010,DONE=3'b011;
+
+
+reg [47:0] test [0:7];
+reg [15:0] expected_result;
+
+//reg [2:0] state= RDY;
+reg [2:0] icount=3'b000;
+reg [3:0] ocount=4'b0000;
+reg mistake;
+
+initial
+begin
+rst=1'b1;
+//Test cases
+test[0]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[1]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+test[2]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[3]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+test[4]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[5]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+test[6]={16'b0_10011_0001000000,16'b0_10011_0001000000,16'b0_10100_0001000000};
+test[7]={16'b0_10011_0001000000,16'b0_10011_0010000000,16'b0_10100_0001100000};//17+18=35
+ocount=4'b0000;
+
+//Done=1'b0;
+number1=test[0][47:32];
+number2=test[0][31:16];
+expected_result=test[0][15:0];
+mistake=1'b0;
+//correct=1'b0;
+
+end
+
+pipelinedFPA fpa(clk,rst,number1,number2,result,ready);
+
+always@(posedge clk) //Data input
+begin
+if(icount<5)
+begin
+number1<=test[icount][47:32];
+number2<=test[icount][31:16];
+icount<=icount+1;
+end
+
+end
+/*
+always@(posedge clk)
+begin
+if(Done!=1'b1)
+begin
+if(ocount>=3)
+begin
+expected_result<=test[ocount-3][15:0];
+//Done<=1'b0;
+if(result!=expected_result) mistake<=1'b1;
+if(ocount==8)
+begin
+Done<=1'b1;
+ocount<=4'b1000;
+end
+else
+begin
+ocount<=ocount+4'b0001;
+Done<=1'b0;
+end
+end
+else
+begin
+ocount<=ocount+4'b0001;
+Done<=1'b0;
+end
+end
+else if(Done==1'b1)
+begin
+ocount<=4'b1000;
+Done<=1'b1;
+
+end
+else
+begin
+ocount<=4'b0000;
+Done<=1'b0;
+mistake<=1'b0;
+expected_result<=test[0][15:0];
+end
+//ocount<=ocount+1;
+//correct<=~mistake;
+end
+*/
+always@(posedge clk)
+begin
+if(ocount<4)
+begin
+Done<=1'b0;
+ocount<=ocount+4'b0001;
+end
+else
+begin
+expected_result<=test[ocount-3][15:0];
+if(result!=expected_result) mistake<=1'b1;
+if(ocount==8)
+begin
+Done<=1'b1;
+ocount<=4'b1000;
+end
+else
+begin
+ocount<=ocount+4'b0001;
+Done<=1'b0;
+end
+end
+end
+
+assign correct=(Done)?(~mistake):1'b0;
+
+
+endmodule
